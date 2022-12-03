@@ -17,7 +17,6 @@ amode = json.load(a)
 current_mode = []
 commands = []
 autos = []
-selected_auto = 0
 selected_command = 0
 for i in command:
     commands.append((i["Command"][0]["Name"], i["Command"][1]["params"][0]))
@@ -25,7 +24,8 @@ for i in amode["AutonomousModes"]:
     autos.append((i["Name"]))
 class DragDropWindow(Gtk.Window):
     def __init__(self):
-        super().__init__(title="Drag and Drop Demo")
+        super().__init__(title="Autonomous Mode Builder")
+        self.selected_auto = 0
         self.set_border_width(10)
         
         self.grid = Gtk.Grid()
@@ -33,34 +33,38 @@ class DragDropWindow(Gtk.Window):
         self.grid.set_row_homogeneous(True)
         self.add(self.grid) 
 
+        #when the autonmous mode is selected from the list on the right
         def on_amode_selected(obj, widget):
+            for row in self.paramsListBox:
+                self.paramsListBox.remove(row)
             print("clicked")
             print(obj.get_selected_rows()[0].get_children()[0].get_text())
             mode_location = obj.get_selected_rows()[0].get_index()
 
-            selected_auto = mode_location
+            current_mode = amode["AutonomousModes"][mode_location]
+            self.selected_auto = mode_location
             mode_name = obj.get_selected_rows()[0].get_children()[0].get_text()
-            #print(amode["AutonomousModes"][mode_location])
+            # kill all of the previous commands in the builder ListBox
             for row in self.builderListBox.get_children():
                 row.destroy()
+            # add the commands to the builder listbox
             for i in amode["AutonomousModes"][mode_location]["Commands"]:
                 row = Gtk.ListBoxRow()
                 label = Gtk.Label()
                 label.set_text(i["Name"])
                 row.add(label)
                 self.builderListBox.add(row)
-                print(i["Name"])
                 self.show_all()
+        # when a command is selected from the Builder listbox we add all of the parameters
+        # of that command to the parameters listbox
         def on_amode_command_selected(obj, widget):
             print("clicked")
             command_location = obj.get_selected_rows()[0].get_index()
-            selected_command = command_location
-            command_name = obj.get_selected_rows()[0].get_children()[0].get_text()
             #print(amode["AutonomousModes"][mode_location])
             for row in self.paramsListBox.get_children():
                 row.destroy()
             try:
-                params = amode["AutonomousModes"][selected_auto]["Commands"][command_location]["Parameters"]
+                params = amode["AutonomousModes"][self.selected_auto]["Commands"][command_location]["Parameters"]
 
             except:
                 params = []
@@ -73,7 +77,7 @@ class DragDropWindow(Gtk.Window):
                     self.paramsListBox.add(row)
             row = Gtk.ListBoxRow()
             combo = Gtk.ComboBoxText()
-            parallel_mode = amode["AutonomousModes"][selected_auto]["Commands"][command_location]["ParallelType"]
+            parallel_mode = amode["AutonomousModes"][self.selected_auto]["Commands"][command_location]["ParallelType"]
 
             combo.append_text("Parallel")
             combo.append_text("Race")
@@ -97,16 +101,20 @@ class DragDropWindow(Gtk.Window):
             self.show_all()
             
 
-
-
         self.amodeFrame = Gtk.Frame(label="Autonomous Modes")
         self.commandFrame = Gtk.Frame(label="Commands")
         self.builderFrame = Gtk.Frame(label="Auto Editor")
         self.paramsFrame = Gtk.Frame(label="Parameters")
+        
         self.amodeListBox = Gtk.ListBox()
         self.builderListBox = Gtk.ListBox()
         self.paramsListBox = Gtk.ListBox()
         self.commandListBox = Gtk.ListBox()
+        
+        self.add_command_button = Gtk.Button(label="<-")
+        self.command_up_button = Gtk.Button(label="^")
+        self.command_down_button = Gtk.Button(label="v")
+
         for i in commands:
             self.commandListBox.add(Gtk.Label(i[0]))
         self.commandListBox.add(Gtk.Label("Commands"))
@@ -125,16 +133,17 @@ class DragDropWindow(Gtk.Window):
             
         self.amodeListBox.connect("row-selected", on_amode_selected)
         self.builderListBox.connect("row-selected", on_amode_command_selected)
-        # self.grid.attach(self.amodeListBox, 0, 0, 8, 10)
-        self.grid.set_column_spacing(10)
-        self.grid.attach(self.amodeFrame, 8, 0, 8, 10)
-        self.grid.attach(self.builderFrame, 16, 0, 8, 5)
-        self.grid.attach(self.paramsFrame, 16, 5, 8, 5)
-        self.grid.attach(self.commandFrame, 24, 0, 8, 10)
-        
-        
-        
 
+        
+        self.grid.set_column_spacing(10)
+        self.grid.attach(self.amodeFrame, 4, 0, 4, 24)
+        self.grid.attach(self.builderFrame, 8, 0, 4, 12)
+        self.grid.attach(self.paramsFrame, 8, 12, 4, 12)
+        self.grid.attach(self.add_command_button, 12, 1, 1, 1)
+        self.grid.attach(self.command_up_button, 12, 2, 1, 1)
+        self.grid.attach(self.command_down_button, 12, 3, 1, 1)
+        self.grid.attach(self.commandFrame, 13, 0, 4, 24)
+        
 
         self.show_all()
 
