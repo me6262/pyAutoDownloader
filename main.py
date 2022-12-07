@@ -58,6 +58,8 @@ class DragDropWindow(Gtk.Window):
         
         self.add_amode_button = Gtk.Button(label="+")
         self.rename_amode_button = Gtk.Button(label="*")
+        
+        self.other_button = Gtk.Button(label="Other")
 
         for i in commands:
             self.commandListBox.add(Gtk.Label(i[0]))
@@ -86,11 +88,13 @@ class DragDropWindow(Gtk.Window):
         self.builderListBox.connect("row-selected", self.on_amode_command_selected)
         self.builderListBox.connect("drag-data-received", self.on_amode_command_drag_end)
         self.add_amode_button.connect("clicked", self.on_add_amode_clicked)
+        self.other_button.connect("clicked", self.on_other_clicked)
 
         
         self.grid.set_column_spacing(10)
         self.grid.attach(self.saveButton, 0, 0, 2, 1)
         self.grid.attach(self.loadButton, 2, 0, 2, 1)
+        self.grid.attach(self.other_button, 12, 0, 2, 1)
         self.grid.attach(self.add_amode_button, 4, 2, 1, 1)
         self.grid.attach(self.rename_amode_button, 4, 3, 1, 1)
         self.grid.attach(self.amodeFrame, 0, 1, 4, 20)
@@ -284,7 +288,6 @@ class DragDropWindow(Gtk.Window):
         self.amodeListBox.add(row)
         self.selected_auto = len(amode["AutonomousModes"]) - 1
         self.show_all()
-        # TODO: make this work
     def on_rename_amode(self, widget):
         print("rename amode")
         dialog = Gtk.Dialog()
@@ -293,14 +296,38 @@ class DragDropWindow(Gtk.Window):
         name = self.amodeListBox.get_selected_rows()[0].get_child().get_text()
         entry.set_text(name)
         # dialog.get_child().add(entry)
-        dialog.new()
-        dialog.run()
+        dialog.add_button("Ok", Gtk.ResponseType.OK)
+        dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+        dialog.get_content_area().add(entry)
+        dialog.show_all()
+        response = dialog.run()
+        
         self.show_all()
         print(name)
-        # obj.get_children()[0].destroy()
-        # renameEntry = Gtk.Entry()
-        # renameEntry.set_text(amode["AutonomousModes"][self.selected_auto]["Name"])
-        # obj.add(renameEntry)
+        if response == Gtk.ResponseType.OK:
+            print("did a thing")
+            amode["AutonomousModes"][self.selected_auto]["Name"] = entry.get_text()
+            self.amodeListBox.get_selected_rows()[0].get_child().set_text(entry.get_text())
+            self.show_all()
+        else:
+            pass
+        dialog.destroy()
+    def on_other_clicked(self, widget):
+        print("other")
+        # this will make a dialog showing a preview of the generated json
+        dialog = Gtk.Dialog()
+        dialog.add_button("Cool", Gtk.ResponseType.OK)
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        scrolled.set_min_content_height(500)
+        scrolled.set_min_content_width(400)
+        scrolled.add(Gtk.Label(json.dumps(amode, indent=2)))
+        dialog.get_content_area().add(scrolled)
+        dialog.show_all()
+        response = dialog.run()
+        if (response == Gtk.ResponseType.OK):
+            dialog.destroy()
+        
     
 win = DragDropWindow()
 win.connect("destroy", Gtk.main_quit)
