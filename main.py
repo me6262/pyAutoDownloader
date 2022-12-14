@@ -1,25 +1,33 @@
+import commands238
 import json
 import gi
 
+
 # TODO: add comments everywhere
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, Gdk
+from gi.repository import Gtk, Gdk, Gio
 
 (TARGET_ENTRY_TEXT, TARGET_ENTRY_PIXBUF) = range(2)
 (COLUMN_TEXT, COLUMN_PIXBUF) = range(2)
 
-f = open("commands.json")
-command = json.load(f)
 
-a = open("amode238.txt")
+com238 = commands238
+
+
+prevpath = open("prevFilepath.txt")
+path = prevpath.readlines()[-1]
+a = open(path + "/src/main/deploy/amode238.txt")
+print(prevpath.read())
+command = com238.get_commands(path)
+print(path + "/src/main/deploy/amode238.txt")
 amode = json.load(a)
 
 current_mode = []
 commands = []
 selected_command = 0
-for i in command:
-    commands.append((i["Command"][0]["Name"], i["Command"][1]["params"][0]))
-class DragDropWindow(Gtk.Window):
+# for i in command:
+    # commands.append((i["Command"][0]["Name"], i["Command"][1]["params"][0]))
+class amodeWindow(Gtk.Window):
     def __init__(self):
         super().__init__(title="Autonomous Mode Builder")
         self.selected_auto = 0
@@ -38,8 +46,19 @@ class DragDropWindow(Gtk.Window):
         self.saveButton = Gtk.Button(label="Save")
         self.loadButton = Gtk.Button(label="Load")
         self.saveButton.connect("clicked", self.on_save_clicked)
+        self.other_button = Gtk.Button(label="Json View")
         #when the autonmous mode is selected from the list on the right
-            
+        
+        self.loadButton.connect("clicked", self.on_load_clicked)
+        
+        self.headerBar = Gtk.HeaderBar()
+        self.headerBar.set_show_close_button(True)
+        self.headerBar.props.title = "Autonomous Mode Builder"
+        self.headerBar.pack_start(self.saveButton) 
+        self.headerBar.pack_start(self.loadButton)    
+        self.headerBar.pack_end(self.other_button)
+        self.other_button.connect("clicked", self.on_json_clicked)
+        self.set_titlebar(self.headerBar)
         
         self.amodeFrame = Gtk.Frame(label="Autonomous Modes")
         self.commandFrame = Gtk.Frame(label="Commands")
@@ -59,19 +78,6 @@ class DragDropWindow(Gtk.Window):
         self.add_amode_button = Gtk.Button(label="+")
         self.rename_amode_button = Gtk.Button(label="*")
         
-        self.other_button = Gtk.Button(label="Other")
-
-        for i in commands:
-            self.commandListBox.add(Gtk.Label(i[0]))
-        self.commandListBox.add(Gtk.Label("Commands"))
-        for i in self.autos:
-            row = Gtk.ListBoxRow()
-            row.drag_source_set(Gdk.ModifierType.BUTTON1_MASK, [], Gdk.DragAction.COPY)
-            label = Gtk.Label()
-            label.set_text(i)
-            row.add(label)
-            self.amodeListBox.add(row)
-        
         self.amodeFrame.add(self.amodeListBox)
         self.commandFrame.add(self.commandListBox)
         self.builderFrame.add(self.builderListBox)
@@ -88,13 +94,12 @@ class DragDropWindow(Gtk.Window):
         self.builderListBox.connect("row-selected", self.on_amode_command_selected)
         self.builderListBox.connect("drag-data-received", self.on_amode_command_drag_end)
         self.add_amode_button.connect("clicked", self.on_add_amode_clicked)
-        self.other_button.connect("clicked", self.on_other_clicked)
+        # self.other_button.connect("clicked", self.on_other_clicked)
 
         
         self.grid.set_column_spacing(10)
         self.grid.attach(self.saveButton, 0, 0, 2, 1)
         self.grid.attach(self.loadButton, 2, 0, 2, 1)
-        self.grid.attach(self.other_button, 12, 0, 2, 1)
         self.grid.attach(self.add_amode_button, 4, 2, 1, 1)
         self.grid.attach(self.rename_amode_button, 4, 3, 1, 1)
         self.grid.attach(self.amodeFrame, 0, 1, 4, 20)
@@ -109,6 +114,31 @@ class DragDropWindow(Gtk.Window):
 
         self.show_all()
 
+    def build_list(self):
+        if self.amodeListBox.get_children():
+            for row in self.amodeListBox:
+                self.amodeListBox.remove(row)
+        if self.commandListBox.get_children():
+            for row in self.commandListBox:
+                self.commandListBox.remove(row)
+        for i in amode["AutonomousModes"]:
+            row = Gtk.ListBoxRow()
+            row.drag_source_set(Gdk.ModifierType.BUTTON1_MASK, [], Gdk.DragAction.COPY)
+            label = Gtk.Label()
+            label.set_text(i["Name"])
+            row.add(label)
+            self.amodeListBox.add(row)
+
+        for i in command:
+            commands.append((i["Command"][0]["Name"], i["Command"][1]["params"][0]))
+        for i in commands:
+            print(i)
+            self.commandListBox.add(Gtk.Label(i[0]))
+        self.trajectories = com238.get_trajectories(path)
+        
+        
+        self.show_all()
+    
     def on_amode_selected(self, widget, obj):
         for row in self.paramsListBox:
             self.paramsListBox.remove(row)
@@ -148,12 +178,24 @@ class DragDropWindow(Gtk.Window):
             params = []
         if params != []:
             for i in params:
-                row = Gtk.ListBoxRow()
-                entry = Gtk.Entry()
-                entry.set_text(i)
-                entry.connect("changed", self.on_command_changed) 
-                row.add(entry)
-                self.paramsListBox.add(row)
+                if amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location]["Name"] == "TrajectoryDriveCommand": 
+                    row = Gtk.ListBoxRow()
+                    combobox = Gtk.ComboBoxText()
+                    for j in range(len(self.trajectories)):
+                        combobox.append_text(self.trajectories[j])
+                        if i == self.trajectories[j]:
+                            combobox.set_active(j)
+                    combobox.connect("changed", self.on_command_changed)
+                    combobox.set_title("Trajectory")
+                    row.add(combobox)
+                    self.paramsListBox.add(row)
+                else:        
+                    row = Gtk.ListBoxRow()
+                    entry = Gtk.Entry()
+                    entry.set_text(i)
+                    entry.connect("changed", self.on_command_changed) 
+                    row.add(entry)
+                    self.paramsListBox.add(row)
 
                 
         row = Gtk.ListBoxRow()
@@ -183,18 +225,41 @@ class DragDropWindow(Gtk.Window):
         self.show_all()
 
     def on_command_changed(self, obj):
-        if (type(obj) == Gtk.ComboBoxText):
+        if (type(obj) == Gtk.ComboBoxText and obj.get_title() != "Trajectory"):
             amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location]["ParallelType"] = obj.get_active_text()
         else:
-            amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location]["Parameters"][obj.get_parent().get_index()] = obj.get_text()
+            if (obj.get_title() == "Trajectory"):
+                amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location]["Parameters"][obj.get_parent().get_index()] = obj.get_active_text()
+            else:
+                amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location]["Parameters"][obj.get_parent().get_index()] = obj.get_text()
         print(amode["AutonomousModes"][self.selected_auto]["Commands"])
         # print(obj.get_active_text())
         print("changed")
         
     def on_save_clicked(self, widget):
         print("save")
-        with open("amode.json", "w") as f:
+        with open(path + "src/main/deploy/amode238.json", "w") as f:
             json.dump(amode, f, indent=4)
+    
+    # creates a new file chooser dialog and the selected file is loaded as json
+    def on_load_clicked(self, widget):
+        print("load")
+        dialog = Gtk.FileChooserDialog("Please choose a file", self, Gtk.FileChooserAction.SELECT_FOLDER, (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
+        dialog.set_current_folder(path)
+        response = dialog.run()
+        if response == Gtk.ResponseType.OK:
+            print("Open clicked")
+            print("File selected: " + dialog.get_filename())
+
+            with open(dialog.get_current_folder() + '/src/main/deploy/amode238.txt', "r") as f:
+                global amode
+                amode = json.load(f)
+                open('prevFilepath.txt', 'w').write(dialog.get_current_folder())
+                self.build_list()
+        elif response == Gtk.ResponseType.CANCEL:
+            print("Cancel clicked")
+        dialog.destroy()
+        
 
     def on_add_command_clicked(self, widget):
         print("add command")
@@ -266,6 +331,8 @@ class DragDropWindow(Gtk.Window):
         else:
             self.paramsListBox.foreach(lambda x: x.destroy())
             self.show_all()
+    
+    #TODO: make drag and drop work
     def on_amode_command_drag_end(self, widget, context, x, y, time):
         print("drag")
         self.command_location = self.builderListBox.get_row_at_y(y).get_index()
@@ -273,13 +340,15 @@ class DragDropWindow(Gtk.Window):
         row.add(Gtk.Label(command[self.command_location]["Command"][0]))
         print(self.command_location)
         self.show_all()
-        
+
+    #TODO: make drag and drop work    
     def on_command_drag_begin(self, widget, context):
         print("drag begin")
         self.command_location = self.commandListBox.get_selected_rows()[0].get_index()
         row = Gtk.ListBoxRow()
         row.add(Gtk.Label(command[self.command_location]["Command"][0]))
         self.show_all()
+        
     def on_add_amode_clicked(self, widget):
         print("add amode")
         amode["AutonomousModes"].append({"Name": "New Mode", "Commands": []})
@@ -288,6 +357,7 @@ class DragDropWindow(Gtk.Window):
         self.amodeListBox.add(row)
         self.selected_auto = len(amode["AutonomousModes"]) - 1
         self.show_all()
+        
     def on_rename_amode(self, widget):
         print("rename amode")
         dialog = Gtk.Dialog()
@@ -312,7 +382,8 @@ class DragDropWindow(Gtk.Window):
         else:
             pass
         dialog.destroy()
-    def on_other_clicked(self, widget):
+    
+    def on_json_clicked(self, widget):
         print("other")
         # this will make a dialog showing a preview of the generated json
         dialog = Gtk.Dialog()
@@ -329,7 +400,7 @@ class DragDropWindow(Gtk.Window):
             dialog.destroy()
         
     
-win = DragDropWindow()
+win = amodeWindow()
 win.connect("destroy", Gtk.main_quit)
 win.show_all()
 Gtk.main()
