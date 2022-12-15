@@ -11,10 +11,10 @@ for frc team 238
 the original application was made in c# with
 .NET framework 6, i wanted to be able to
 make changes to it easily while also remaining
-on linux, so while i was bored? i started to
+on linux, so while I was bored, I started to
 completely rebuild the app in python using 
 GTK3 python binds. which theoretically should
-function on window and mac as well as linux.
+function on windows and mac as well as linux.
 
 this allows future students with different 
 hardware and software preferences not be 
@@ -44,3 +44,9 @@ drop commands into the builder section
 currently, it only serves as a viewer for autos
 but progress is moving very fast and will be
 here soon
+
+
+INSTALLATION
+---------------------------------------------
+
+coming soon
