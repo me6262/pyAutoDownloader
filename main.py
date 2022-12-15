@@ -20,9 +20,9 @@ txtNTPath = '\\src\\main\\deploy\\amode238.txt'
 # path = prevpath.readlines()[-1]
 # print(prevpath.read())
 # print(path + "/src/main/deploy/amode238.txt")
-# amode = json.load(a)
 if os.name == "posix":
     prevpath = open('prevFilepath.txt')
+    path = prevpath.readlines()[-1]
     fullpath = path + txtPath
 else:
     prevpath = open('prevNTpath.txt')
@@ -97,9 +97,7 @@ class amodeWindow(Gtk.Window):
         self.rename_amode_button.connect("clicked", self.on_rename_amode)
             
         self.amodeListBox.connect("row-selected", self.on_amode_selected)
-        self.commandListBox.connect("drag-begin", self.on_command_drag_begin)
         self.builderListBox.connect("row-selected", self.on_amode_command_selected)
-        self.builderListBox.connect("drag-data-received", self.on_amode_command_drag_end)
         self.add_amode_button.connect("clicked", self.on_add_amode_clicked)
         # self.other_button.connect("clicked", self.on_other_clicked)
 
@@ -131,7 +129,7 @@ class amodeWindow(Gtk.Window):
         if self.commandListBox.get_children():
             for row in self.commandListBox:
                 self.commandListBox.remove(row)
-        for i in amode["AutonomousModes"]:
+        for i in self.amode["AutonomousModes"]:
             row = Gtk.ListBoxRow()
             row.drag_source_set(Gdk.ModifierType.BUTTON1_MASK, [], Gdk.DragAction.COPY)
             label = Gtk.Label()
@@ -155,14 +153,14 @@ class amodeWindow(Gtk.Window):
         print(obj.get_parent().get_selected_rows()[0].get_children()[0].get_text())
         mode_location = obj.get_parent().get_selected_rows()[0].get_index()
 
-        self.current_mode = amode["AutonomousModes"][mode_location]
+        self.current_mode = self.amode["AutonomousModes"][mode_location]
         self.selected_auto = mode_location
         mode_name = obj.get_parent().get_selected_rows()[0].get_children()[0].get_text()
         # kill all of the previous commands in the builder ListBox
         for row in self.builderListBox.get_children():
             row.destroy()
         # add the commands to the builder listbox
-        for i in amode["AutonomousModes"][mode_location]["Commands"]:
+        for i in self.amode["AutonomousModes"][mode_location]["Commands"]:
             row = Gtk.ListBoxRow()
             label = Gtk.Label()
             label.set_text(i["Name"])
@@ -177,17 +175,16 @@ class amodeWindow(Gtk.Window):
     def on_amode_command_selected(self, widget, obj):
         print("clicked")
         self.command_location = obj.get_parent().get_selected_rows()[0].get_index()
-        #print(amode["AutonomousModes"][mode_location])
         for row in self.paramsListBox.get_children():
             row.destroy()
         try:
-            params = amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location]["Parameters"]
+            params = self.amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location]["Parameters"]
 
         except:
             params = []
         if params != []:
             for i in params:
-                if amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location]["Name"] == "TrajectoryDriveCommand": 
+                if self.amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location]["Name"] == "TrajectoryDriveCommand": 
                     row = Gtk.ListBoxRow()
                     combobox = Gtk.ComboBoxText()
                     for j in range(len(self.trajectories)):
@@ -209,7 +206,7 @@ class amodeWindow(Gtk.Window):
                 
         row = Gtk.ListBoxRow()
         combo = Gtk.ComboBoxText()
-        parallel_mode = amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location]["ParallelType"]
+        parallel_mode = self.amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location]["ParallelType"]
 
         combo.append_text("Parallel")
         combo.append_text("Race")
@@ -235,16 +232,16 @@ class amodeWindow(Gtk.Window):
 
     def on_command_changed(self, obj):
         if (type(obj) == Gtk.ComboBoxText and obj.get_title() != "Trajectory"):
-            amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location]["ParallelType"] = obj.get_active_text()
+            self.amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location]["ParallelType"] = obj.get_active_text()
         else:
             try:
                 if (obj.get_title() == "Trajectory"):
-                  amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location]["Parameters"][obj.get_parent().get_index()] = obj.get_active_text()
+                  self.amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location]["Parameters"][obj.get_parent().get_index()] = obj.get_active_text()
                 else:
-                    amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location]["Parameters"][obj.get_parent().get_index()] = obj.get_text()
+                    self.amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location]["Parameters"][obj.get_parent().get_index()] = obj.get_text()
             except:
-                amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location]["Parameters"][obj.get_parent().get_index()] = obj.get_text()
-        print(amode["AutonomousModes"][self.selected_auto]["Commands"])
+                self.amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location]["Parameters"][obj.get_parent().get_index()] = obj.get_text()
+        print(self.amode["AutonomousModes"][self.selected_auto]["Commands"])
         # print(obj.get_active_text())
         print("changed")
         
@@ -252,10 +249,10 @@ class amodeWindow(Gtk.Window):
         print("save")
         if os.name == 'posix':
             with open(path + "src/main/deploy/amode238.txt", "w") as f:
-                json.dump(amode, f, indent=4)
+                json.dump(self.amode, f, indent=4)
         else:
             with open(path + txtNTPath, "w") as f:
-                json.dump(amode, f, indent=4)
+                json.dump(self.amode, f, indent=4)
     
     # creates a new file chooser dialog and the selected file is loaded as json
     def on_load_clicked(self, widget):
@@ -267,12 +264,13 @@ class amodeWindow(Gtk.Window):
             print("Open clicked")
             print("File selected: " + dialog.get_filename())
 
-            with open(dialog.get_current_folder() + txtNTPath, "r") as f:
-                global amode
-                amode = json.load(f)
-                if os.name == "nt":
+            if os.name == "nt":
+                with open(dialog.get_current_folder() + txtNTPath, "r") as f:
+                    self.amode = json.load(f)
                     open('prevNTpath.txt', 'w').write(dialog.get_current_folder())
-                else:
+            else:
+                with open(dialog.get_current_folder() + txtPath, "r") as f:
+                    self.amode = json.load(f)
                     open('prevFilepath.txt', 'w').write(dialog.get_current_folder())
                 self.build_list()
         elif response == Gtk.ResponseType.CANCEL:
@@ -285,25 +283,25 @@ class amodeWindow(Gtk.Window):
         print(self.commandListBox.get_selected_rows()[0].get_children()[0].get_text())
         print(self.command)
         if self.command[self.commandListBox.get_selected_row().get_index()]["Command"][1]["params"] != ['']:
-            amode["AutonomousModes"][self.selected_auto]["Commands"].append({"Name": self.commandListBox.get_selected_rows()[0].get_children()[0].get_text(), "Parameters": self.command[self.commandListBox.get_selected_rows()[0].get_index()]["Command"][1]["params"], "ParallelType": "None"})
+            self.amode["AutonomousModes"][self.selected_auto]["Commands"].append({"Name": self.commandListBox.get_selected_rows()[0].get_children()[0].get_text(), "Parameters": self.command[self.commandListBox.get_selected_rows()[0].get_index()]["Command"][1]["params"], "ParallelType": "None"})
         else: 
-            amode["AutonomousModes"][self.selected_auto]["Commands"].append({"Name": self.commandListBox.get_selected_rows()[0].get_children()[0].get_text(), "Parameters": [], "ParallelType": "None"})
+            self.amode["AutonomousModes"][self.selected_auto]["Commands"].append({"Name": self.commandListBox.get_selected_rows()[0].get_children()[0].get_text(), "Parameters": [], "ParallelType": "None"})
         row = Gtk.ListBoxRow()
         row.add(Gtk.Label(self.commandListBox.get_selected_rows()[0].get_children()[0].get_text()))
         self.builderListBox.add(row)
-        print(amode["AutonomousModes"][self.selected_auto]["Commands"])
+        print(self.amode["AutonomousModes"][self.selected_auto]["Commands"])
         self.show_all()
     
     def on_command_up_clicked(self, widget):
         print("up")
         if self.command_location > 0:
-            temp = amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location]
-            amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location] = amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location - 1]
-            amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location - 1] = temp
+            temp = self.amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location]
+            self.amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location] = self.amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location - 1]
+            self.amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location - 1] = temp
             self.command_location -= 1
             for row in self.builderListBox.get_children():
                 row.destroy()
-            for i in amode["AutonomousModes"][self.selected_auto]["Commands"]:
+            for i in self.amode["AutonomousModes"][self.selected_auto]["Commands"]:
                 row = Gtk.ListBoxRow()
                 label = Gtk.Label()
                 label.set_text(i["Name"])
@@ -315,14 +313,14 @@ class amodeWindow(Gtk.Window):
         
     def on_command_down_clicked(self, widget):
         print("down")
-        if self.command_location < len(amode["AutonomousModes"][self.selected_auto]["Commands"]) - 1:
-            temp = amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location]
-            amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location] = amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location + 1]
-            amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location + 1] = temp
+        if self.command_location < len(self.amode["AutonomousModes"][self.selected_auto]["Commands"]) - 1:
+            temp = self.amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location]
+            self.amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location] = self.amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location + 1]
+            self.amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location + 1] = temp
             self.command_location += 1
             for row in self.builderListBox.get_children():
                 row.destroy()
-            for i in amode["AutonomousModes"][self.selected_auto]["Commands"]:
+            for i in self.amode["AutonomousModes"][self.selected_auto]["Commands"]:
                 row = Gtk.ListBoxRow()
                 label = Gtk.Label()
                 label.set_text(i["Name"])
@@ -334,10 +332,10 @@ class amodeWindow(Gtk.Window):
     
     def on_remove_command_clicked(self, widget):
         print("remove")
-        amode["AutonomousModes"][self.selected_auto]["Commands"].pop(self.command_location)
+        self.amode["AutonomousModes"][self.selected_auto]["Commands"].pop(self.command_location)
         for row in self.builderListBox.get_children():
             row.destroy()
-        for i in amode["AutonomousModes"][self.selected_auto]["Commands"]:
+        for i in self.amode["AutonomousModes"][self.selected_auto]["Commands"]:
             row = Gtk.ListBoxRow()
             label = Gtk.Label()
             label.set_text(i["Name"])
@@ -351,31 +349,14 @@ class amodeWindow(Gtk.Window):
         else:
             self.paramsListBox.foreach(lambda x: x.destroy())
             self.show_all()
-    
-    #TODO: make drag and drop work
-    def on_amode_command_drag_end(self, widget, context, x, y, time):
-        print("drag")
-        self.command_location = self.builderListBox.get_row_at_y(y).get_index()
-        row = Gtk.ListBoxRow()
-        row.add(Gtk.Label(command[self.command_location]["Command"][0]))
-        print(self.command_location)
-        self.show_all()
-
-    #TODO: make drag and drop work    
-    def on_command_drag_begin(self, widget, context):
-        print("drag begin")
-        self.command_location = self.commandListBox.get_selected_rows()[0].get_index()
-        row = Gtk.ListBoxRow()
-        row.add(Gtk.Label(command[self.command_location]["Command"][0]))
-        self.show_all()
         
     def on_add_amode_clicked(self, widget):
         print("add amode")
-        amode["AutonomousModes"].append({"Name": "New Mode", "Commands": []})
+        self.amode["AutonomousModes"].append({"Name": "New Mode", "Commands": []})
         row = Gtk.ListBoxRow()
         row.add(Gtk.Label("New Mode"))
         self.amodeListBox.add(row)
-        self.selected_auto = len(amode["AutonomousModes"]) - 1
+        self.selected_auto = len(self.amode["AutonomousModes"]) - 1
         self.show_all()
         
     def on_rename_amode(self, widget):
