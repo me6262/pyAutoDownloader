@@ -1,6 +1,7 @@
 import commands238
 import json
 import gi
+import os
 
 
 # TODO: add comments everywhere
@@ -12,16 +13,21 @@ from gi.repository import Gtk, Gdk, Gio
 
 
 com238 = commands238
+txtPath = '/src/main/deploy/amode238.txt'
+txtNTPath = '\\src\\main\\deploy\\amode238.txt'
 
-
-prevpath = open("prevFilepath.txt")
-path = prevpath.readlines()[-1]
-a = open(path + "/src/main/deploy/amode238.txt")
-print(prevpath.read())
-command = com238.get_commands(path)
-print(path + "/src/main/deploy/amode238.txt")
-amode = json.load(a)
-
+# prevpath = open("prevFilepath.txt")
+# path = prevpath.readlines()[-1]
+# print(prevpath.read())
+# print(path + "/src/main/deploy/amode238.txt")
+# amode = json.load(a)
+if os.name == "posix":
+    prevpath = open('prevFilepath.txt')
+    fullpath = path + txtPath
+else:
+    prevpath = open('prevNTpath.txt')
+    path = prevpath.readlines()[-1]
+    fullpath = path + txtNTPath
 current_mode = []
 commands = []
 selected_command = 0
@@ -31,13 +37,14 @@ class amodeWindow(Gtk.Window):
     def __init__(self):
         super().__init__(title="Autonomous Mode Builder")
         self.selected_auto = 0
+        self.command = []
         self.set_border_width(10)
         
         # self.add(bar)
         
-        self.autos = []
-        for i in amode["AutonomousModes"]:
-            self.autos.append((i["Name"]))
+        # self.autos = []
+        # for i in amode["AutonomousModes"]:
+            # self.autos.append((i["Name"]))
         self.grid = Gtk.Grid()
         self.grid.set_column_homogeneous(True)
         self.grid.set_row_homogeneous(True)
@@ -115,6 +122,9 @@ class amodeWindow(Gtk.Window):
         self.show_all()
 
     def build_list(self):
+        self.command = com238.get_commands(path)
+        print('printing command')
+        print(self.command)
         if self.amodeListBox.get_children():
             for row in self.amodeListBox:
                 self.amodeListBox.remove(row)
@@ -129,10 +139,9 @@ class amodeWindow(Gtk.Window):
             row.add(label)
             self.amodeListBox.add(row)
 
-        for i in command:
+        for i in self.command:
             commands.append((i["Command"][0]["Name"], i["Command"][1]["params"][0]))
         for i in commands:
-            print(i)
             self.commandListBox.add(Gtk.Label(i[0]))
         self.trajectories = com238.get_trajectories(path)
         
@@ -228,9 +237,12 @@ class amodeWindow(Gtk.Window):
         if (type(obj) == Gtk.ComboBoxText and obj.get_title() != "Trajectory"):
             amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location]["ParallelType"] = obj.get_active_text()
         else:
-            if (obj.get_title() == "Trajectory"):
-                amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location]["Parameters"][obj.get_parent().get_index()] = obj.get_active_text()
-            else:
+            try:
+                if (obj.get_title() == "Trajectory"):
+                  amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location]["Parameters"][obj.get_parent().get_index()] = obj.get_active_text()
+                else:
+                    amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location]["Parameters"][obj.get_parent().get_index()] = obj.get_text()
+            except:
                 amode["AutonomousModes"][self.selected_auto]["Commands"][self.command_location]["Parameters"][obj.get_parent().get_index()] = obj.get_text()
         print(amode["AutonomousModes"][self.selected_auto]["Commands"])
         # print(obj.get_active_text())
@@ -238,8 +250,12 @@ class amodeWindow(Gtk.Window):
         
     def on_save_clicked(self, widget):
         print("save")
-        with open(path + "src/main/deploy/amode238.json", "w") as f:
-            json.dump(amode, f, indent=4)
+        if os.name == 'posix':
+            with open(path + "src/main/deploy/amode238.txt", "w") as f:
+                json.dump(amode, f, indent=4)
+        else:
+            with open(path + txtNTPath, "w") as f:
+                json.dump(amode, f, indent=4)
     
     # creates a new file chooser dialog and the selected file is loaded as json
     def on_load_clicked(self, widget):
@@ -251,10 +267,13 @@ class amodeWindow(Gtk.Window):
             print("Open clicked")
             print("File selected: " + dialog.get_filename())
 
-            with open(dialog.get_current_folder() + '/src/main/deploy/amode238.txt', "r") as f:
+            with open(dialog.get_current_folder() + txtNTPath, "r") as f:
                 global amode
                 amode = json.load(f)
-                open('prevFilepath.txt', 'w').write(dialog.get_current_folder())
+                if os.name == "nt":
+                    open('prevNTpath.txt', 'w').write(dialog.get_current_folder())
+                else:
+                    open('prevFilepath.txt', 'w').write(dialog.get_current_folder())
                 self.build_list()
         elif response == Gtk.ResponseType.CANCEL:
             print("Cancel clicked")
@@ -264,8 +283,9 @@ class amodeWindow(Gtk.Window):
     def on_add_command_clicked(self, widget):
         print("add command")
         print(self.commandListBox.get_selected_rows()[0].get_children()[0].get_text())
-        if command[self.commandListBox.get_selected_rows()[0].get_index()]["Command"][1]["params"] != [""]:
-            amode["AutonomousModes"][self.selected_auto]["Commands"].append({"Name": self.commandListBox.get_selected_rows()[0].get_children()[0].get_text(), "Parameters": command[self.commandListBox.get_selected_rows()[0].get_index()]["Command"][1]["params"], "ParallelType": "None"})
+        print(self.command)
+        if self.command[self.commandListBox.get_selected_row().get_index()]["Command"][1]["params"] != ['']:
+            amode["AutonomousModes"][self.selected_auto]["Commands"].append({"Name": self.commandListBox.get_selected_rows()[0].get_children()[0].get_text(), "Parameters": self.command[self.commandListBox.get_selected_rows()[0].get_index()]["Command"][1]["params"], "ParallelType": "None"})
         else: 
             amode["AutonomousModes"][self.selected_auto]["Commands"].append({"Name": self.commandListBox.get_selected_rows()[0].get_children()[0].get_text(), "Parameters": [], "ParallelType": "None"})
         row = Gtk.ListBoxRow()
@@ -310,7 +330,7 @@ class amodeWindow(Gtk.Window):
                 self.builderListBox.add(row)
                 self.show_all()
             self.builderListBox.select_row(self.builderListBox.get_row_at_index(self.command_location))
-            self.on_amode_command_selected(self, widget, obj=self.builderListBox.get_selected_rows()[0])
+            self.on_amode_command_selected(self, widget)
     
     def on_remove_command_clicked(self, widget):
         print("remove")
