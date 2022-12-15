@@ -377,7 +377,7 @@ class amodeWindow(Gtk.Window):
         print(name)
         if response == Gtk.ResponseType.OK:
             print("did a thing")
-            amode["AutonomousModes"][self.selected_auto]["Name"] = entry.get_text()
+            self.amode["AutonomousModes"][self.selected_auto]["Name"] = entry.get_text()
             self.amodeListBox.get_selected_rows()[0].get_child().set_text(entry.get_text())
             self.show_all()
         else:
@@ -393,7 +393,7 @@ class amodeWindow(Gtk.Window):
         scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         scrolled.set_min_content_height(500)
         scrolled.set_min_content_width(400)
-        scrolled.add(Gtk.Label(json.dumps(amode, indent=2)))
+        scrolled.add(Gtk.Label(json.dumps(self.amode, indent=2)))
         dialog.get_content_area().add(scrolled)
         dialog.show_all()
         response = dialog.run()
