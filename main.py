@@ -1,3 +1,9 @@
+# -------------------------------------#
+# Program: Autonomous Mode Builder
+# authors: Hayden Mitchell
+# -------------------------------------#
+
+
 import commands238
 import json
 import gi
@@ -11,15 +17,12 @@ from gi.repository import Gtk, Gdk, Gio
 (TARGET_ENTRY_TEXT, TARGET_ENTRY_PIXBUF) = range(2)
 (COLUMN_TEXT, COLUMN_PIXBUF) = range(2)
 
+DRAG_ACTION = Gdk.DragAction.COPY
 
 com238 = commands238
 txtPath = '/src/main/deploy/amode238.txt'
 txtNTPath = '\\src\\main\\deploy\\amode238.txt'
 
-# prevpath = open("prevFilepath.txt")
-# path = prevpath.readlines()[-1]
-# print(prevpath.read())
-# print(path + "/src/main/deploy/amode238.txt")
 if os.name == "posix":
     prevpath = open('prevFilepath.txt')
     path = prevpath.readlines()[-1]
@@ -31,8 +34,6 @@ else:
 current_mode = []
 commands = []
 selected_command = 0
-# for i in command:
-    # commands.append((i["Command"][0]["Name"], i["Command"][1]["params"][0]))
 class amodeWindow(Gtk.Window):
     def __init__(self):
         super().__init__(title="Autonomous Mode Builder")
@@ -40,22 +41,39 @@ class amodeWindow(Gtk.Window):
         self.command = []
         self.set_border_width(10)
         
-        # self.add(bar)
-        
-        # self.autos = []
-        # for i in amode["AutonomousModes"]:
-            # self.autos.append((i["Name"]))
         self.grid = Gtk.Grid()
         self.grid.set_column_homogeneous(True)
         self.grid.set_row_homogeneous(True)
         self.add(self.grid) 
-
-        self.saveButton = Gtk.Button(label="Save")
-        self.loadButton = Gtk.Button(label="Load")
+        
+        # icons for buttons to be used later
+        openico = Gtk.Image.new_from_icon_name("document-open-symbolic", Gtk.IconSize.BUTTON)
+        saveico = Gtk.Image.new_from_icon_name("document-save", Gtk.IconSize.BUTTON)
+        burgerico = Gtk.Image.new_from_icon_name("hamburger-menu", Gtk.IconSize.BUTTON)
+        newico = Gtk.Image.new_from_icon_name("document-new", Gtk.IconSize.BUTTON)
+        removeico = Gtk.Image.new_from_icon_name("edit-delete", Gtk.IconSize.BUTTON)
+        upico = Gtk.Image.new_from_icon_name("go-up", Gtk.IconSize.BUTTON)
+        downico = Gtk.Image.new_from_icon_name("go-down", Gtk.IconSize.BUTTON)
+        renameico = Gtk.Image.new_from_icon_name("edit-rename", Gtk.IconSize.BUTTON)
+        addico = Gtk.Image.new_from_icon_name("add", Gtk.IconSize.BUTTON)
+        
+        self.saveButton = Gtk.Button(image=saveico)
+        self.loadButton = Gtk.Button(image=openico)
         self.saveButton.connect("clicked", self.on_save_clicked)
-        self.other_button = Gtk.Button(label="Json View")
+        self.other_button = Gtk.MenuButton(image=burgerico)
+        self.json_button = Gtk.Button(label="JSON preview")
+        self.about_button = Gtk.Button(label='About')
         #when the autonmous mode is selected from the list on the right
         
+        self.other_popover = Gtk.Popover()
+        self.other_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        self.other_vbox.add(self.json_button)
+        self.other_vbox.add(self.about_button)
+        
+        self.other_vbox.show_all()
+        self.other_popover.add(self.other_vbox)
+        self.other_popover.set_position(Gtk.PositionType.BOTTOM)
+        self.other_button.set_popover(self.other_popover) 
         self.loadButton.connect("clicked", self.on_load_clicked)
         
         self.headerBar = Gtk.HeaderBar()
@@ -64,7 +82,6 @@ class amodeWindow(Gtk.Window):
         self.headerBar.pack_start(self.saveButton) 
         self.headerBar.pack_start(self.loadButton)    
         self.headerBar.pack_end(self.other_button)
-        self.other_button.connect("clicked", self.on_json_clicked)
         self.set_titlebar(self.headerBar)
         
         self.amodeFrame = Gtk.Frame(label="Autonomous Modes")
@@ -77,13 +94,13 @@ class amodeWindow(Gtk.Window):
         self.paramsListBox = Gtk.ListBox()
         self.commandListBox = Gtk.ListBox()
         
-        self.add_command_button = Gtk.Button(label="<-")
-        self.command_up_button = Gtk.Button(label="^")
-        self.command_down_button = Gtk.Button(label="v")
-        self.remove_command_button = Gtk.Button(label="--")
+        self.add_command_button = Gtk.Button(image=addico)
+        self.command_up_button = Gtk.Button(image=upico)
+        self.command_down_button = Gtk.Button(image=downico)
+        self.remove_command_button = Gtk.Button(image=removeico)
         
-        self.add_amode_button = Gtk.Button(label="+")
-        self.rename_amode_button = Gtk.Button(label="*")
+        self.add_amode_button = Gtk.Button(image=newico)
+        self.rename_amode_button = Gtk.Button(image=renameico)
         
         self.amodeFrame.add(self.amodeListBox)
         self.commandFrame.add(self.commandListBox)
@@ -95,11 +112,12 @@ class amodeWindow(Gtk.Window):
         self.command_up_button.connect("clicked", self.on_command_up_clicked)
         self.remove_command_button.connect("clicked", self.on_remove_command_clicked)
         self.rename_amode_button.connect("clicked", self.on_rename_amode)
+        self.json_button.connect("clicked", self.on_json_clicked)
+        self.about_button.connect("clicked", self.aboutPage)
             
         self.amodeListBox.connect("row-selected", self.on_amode_selected)
         self.builderListBox.connect("row-selected", self.on_amode_command_selected)
         self.add_amode_button.connect("clicked", self.on_add_amode_clicked)
-        # self.other_button.connect("clicked", self.on_other_clicked)
 
         
         self.grid.set_column_spacing(10)
@@ -399,7 +417,17 @@ class amodeWindow(Gtk.Window):
         response = dialog.run()
         if (response == Gtk.ResponseType.OK):
             dialog.destroy()
-        
+    
+    def aboutPage(self, widget):
+        about = Gtk.AboutDialog()
+        about.set_program_name("Autonomous Mode Builder")
+        about.set_version("1.0")
+        about.set_comments("This is a tool to help build autonomous modes for team 238's robot.")
+        about.set_website("frc238.org")
+        about.show_all()
+        response = about.run()
+
+
     
 win = amodeWindow()
 win.connect("destroy", Gtk.main_quit)
