@@ -266,7 +266,7 @@ class amodeWindow(Gtk.Window):
     def on_save_clicked(self, widget):
         print("save")
         if os.name == 'posix':
-            with open(path + "src/main/deploy/amode238.txt", "w") as f:
+            with open(path + txtPath, "w") as f:
                 json.dump(self.amode, f, indent=4)
         else:
             with open(path + txtNTPath, "w") as f:
