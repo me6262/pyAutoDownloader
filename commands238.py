@@ -6,7 +6,7 @@ command_reg = '.*/(.*).java'
 nt_command_reg = '.*\\\\(.*).java'
 annot_reg = '@AutonomousModeAnnotation\(parameterNames = {(.*)}\)'
 path_reg = '.*/(.*)\.path'
-nt_path_reg = '.*\\\\(.*)\.path'
+nt_path_reg = '.*\\\\(.*)\\.path'
 if os.name == 'posix':
     rf = re.compile(command_reg, re.IGNORECASE)
     rp = re.compile(path_reg)

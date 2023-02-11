@@ -315,9 +315,13 @@ class amodeWindow(Gtk.Window):
             try:
                 if os.name == "nt":
                     with open(dialog.get_current_folder() + txtNTPath, "r") as f:
+                        print('here')
                         self.amode = json.load(f)
                         open('prevNTpath.txt',
                             'w').write(dialog.get_current_folder())
+                    print(dialog.get_current_folder())
+                    self.build_list()
+
                 else:
                     with open(dialog.get_current_folder() + txtPath, "r") as f:
                         self.amode = json.load(f)
@@ -325,6 +329,7 @@ class amodeWindow(Gtk.Window):
                             'w').write(dialog.get_current_folder())
                     self.build_list()
             except:
+                print(dialog.get_current_folder() + txtNTPath)
                 dialog.destroy()
                 errorDialog.add_button("OK", Gtk.ResponseType.OK)
                 errorDialog.set_markup("Please pick a valid project folder's root directory")
