@@ -7,6 +7,7 @@ import commands238
 import json
 import gi
 import os
+import file_interactions
 
 # TODO: add comments everywhere
 gi.require_version("Gtk", "3.0")
@@ -16,19 +17,18 @@ from gi.repository import Gtk, Gdk, Gio
 (COLUMN_TEXT, COLUMN_PIXBUF) = range(2)
 
 DRAG_ACTION = Gdk.DragAction.COPY
-
+screen = Gdk.Screen.get_default()
+provider = Gtk.CssProvider()
+provider.load_from_path("gtk.css")
+Gtk.StyleContext.add_provider_for_screen(screen, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 com238 = commands238
 txtPath = '/src/main/deploy/amode238.txt'
 txtNTPath = '\\src\\main\\deploy\\amode238.txt'
 
-if os.name == "posix":
-    prevpath = open('prevFilepath.txt')
-    path = prevpath.readlines()[-1]
-    fullpath = path + txtPath
-else:
-    prevpath = open('prevNTpath.txt')
-    path = prevpath.readlines()[-1]
-    fullpath = path + txtNTPath
+
+files = file_interactions
+path = files.get_last_project_path("r").readlines()[-1]
+fullpath = path + txtPath if os.name == "posix" else path + txtNTPath
 current_mode = []
 commands = []
 selected_command = 0
@@ -50,19 +50,19 @@ class amodeWindow(Gtk.Window):
         # icons for buttons to be used later
         openico = Gtk.Image.new_from_icon_name("document-open-symbolic",
                                                Gtk.IconSize.BUTTON)
-        saveico = Gtk.Image.new_from_icon_name("document-save",
+        saveico = Gtk.Image.new_from_icon_name("document-save-symbolic",
                                                Gtk.IconSize.BUTTON)
-        burgerico = Gtk.Image.new_from_icon_name("hamburger-menu",
+        burgerico = Gtk.Image.new_from_icon_name("preferences-other-symbolic",
                                                  Gtk.IconSize.BUTTON)
-        newico = Gtk.Image.new_from_icon_name("document-new",
+        newico = Gtk.Image.new_from_icon_name("document-new-symbolic",
                                               Gtk.IconSize.BUTTON)
-        removeico = Gtk.Image.new_from_icon_name("edit-delete",
+        removeico = Gtk.Image.new_from_icon_name("edit-delete-symbolic",
                                                  Gtk.IconSize.BUTTON)
-        upico = Gtk.Image.new_from_icon_name("go-up", Gtk.IconSize.BUTTON)
-        downico = Gtk.Image.new_from_icon_name("go-down", Gtk.IconSize.BUTTON)
-        renameico = Gtk.Image.new_from_icon_name("edit-rename",
+        upico = Gtk.Image.new_from_icon_name("go-up-symbolic", Gtk.IconSize.BUTTON)
+        downico = Gtk.Image.new_from_icon_name("go-down-symbolic", Gtk.IconSize.BUTTON)
+        renameico = Gtk.Image.new_from_icon_name("document-edit-symbolic",
                                                  Gtk.IconSize.BUTTON)
-        addico = Gtk.Image.new_from_icon_name("add", Gtk.IconSize.BUTTON)
+        addico = Gtk.Image.new_from_icon_name("list-add-symbolic", Gtk.IconSize.BUTTON)
 
         self.saveButton = Gtk.Button(image=saveico)
         self.loadButton = Gtk.Button(image=openico)
@@ -314,11 +314,20 @@ class amodeWindow(Gtk.Window):
             print("File selected: " + dialog.get_filename())
             try:
                 if os.name == "nt":
-                    with open(dialog.get_current_folder() + txtNTPath, "r") as f:
+                    try:
+                        with open(dialog.get_current_folder() + txtNTPath, "r") as f:
+                            print('here')
+                            self.amode = json.load(f)
+                            open('../savedata/prevNTpath.txt',
+                                 'w').write(dialog.get_current_folder())
+                    except:
+                        with open(dialog.get_current_folder() + txtNTPath, "w") as f:
+                            f.write("")
+                    with open(dialog.get_current_folder() + txtPath):
                         print('here')
                         self.amode = json.load(f)
-                        open('prevNTpath.txt',
-                            'w').write(dialog.get_current_folder())
+                        open('../savedata/prevNTpath.txt',
+                             'w').write(dialog.get_current_folder())
                     print(dialog.get_current_folder())
                     self.build_list()
 
@@ -338,7 +347,7 @@ class amodeWindow(Gtk.Window):
                 if response2 == Gtk.ResponseType.OK:
                     print("cool")
                     errorDialog.destroy()
-                
+
         elif response == Gtk.ResponseType.CANCEL:
             print("Cancel clicked")
         dialog.destroy()

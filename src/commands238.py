@@ -13,7 +13,7 @@ if os.name == 'posix':
 else:
     rf = re.compile(nt_command_reg, re.IGNORECASE)
     rp = re.compile(nt_path_reg)
-    
+
 rg = re.compile(annot_reg, re.IGNORECASE)
 all_commands = []
 all_trajectories = []
@@ -28,7 +28,7 @@ def get_commands(path):
     command_NT_path = path + "\\src\\main\\java\\frc\\robot\\commands"
     if os.name == 'nt':
         command_path = command_NT_path
-    else: 
+    else:
         command_path = command_posix_path
     for root, dirs, files in os.walk(command_path):
         for file in files:
